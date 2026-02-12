@@ -196,7 +196,7 @@ class OpenClawGateway
                     'token' => $this->token,
                 ],
                 'client' => [
-                    'id' => 'oc-bridge',
+                    'id' => 'gateway-client',
                     'displayName' => 'Market Studies Bridge',
                     'mode' => 'backend',
                     'version' => '1.0.0',
