@@ -1,11 +1,11 @@
-# mm-oc-bridge
+# oc-bridge
 
 OpenClaw bridge for Laravel. Provides WebSocket communication with the OpenClaw AI gateway, SSE streaming, and CDP browser screenshots.
 
 ## Installation
 
 ```bash
-composer require brunocfalcao/mm-oc-bridge
+composer require brunocfalcao/oc-bridge
 ```
 
 Publish the config:
@@ -31,7 +31,7 @@ OC_BROWSER_URL=http://127.0.0.1:9222
 ### Send a Message
 
 ```php
-use Brunocfalcao\OcBridge\Facades\OcBridge;
+use Brunocfalcao\OCBridge\Facades\OcBridge;
 
 $result = OcBridge::sendMessage('Analyze this market');
 echo $result['reply'];
@@ -68,7 +68,7 @@ OcBridge::streamMessage($prompt, $memoryId, function (string $type, array $data)
 ### Take a Screenshot (CDP)
 
 ```php
-use Brunocfalcao\OcBridge\Services\BrowserService;
+use Brunocfalcao\OCBridge\Services\BrowserService;
 
 $browser = app(BrowserService::class);
 $browser->open('https://competitor.com');

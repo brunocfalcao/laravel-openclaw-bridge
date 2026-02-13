@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brunocfalcao\OcBridge\Services;
+namespace Brunocfalcao\OCBridge\Services;
 
 use Illuminate\Support\Str;
 use RuntimeException;

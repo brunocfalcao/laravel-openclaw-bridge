@@ -1,9 +1,9 @@
 {
-    "name": "brunocfalcao/mm-oc-bridge",
+    "name": "brunocfalcao/oc-bridge",
     "description": "OpenClaw bridge for Laravel — WebSocket client, SSE streaming, CDP screenshots, memory management",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/brunocfalcao/mm-oc-bridge",
+    "homepage": "https://github.com/brunocfalcao/oc-bridge",
     "authors": [
         {
             "name": "Bruno Falcao",
@@ -17,16 +17,16 @@
     },
     "autoload": {
         "psr-4": {
-            "Brunocfalcao\\OcBridge\\": "src/"
+            "Brunocfalcao\\OCBridge\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Brunocfalcao\\OcBridge\\OcBridgeServiceProvider"
+                "Brunocfalcao\\OCBridge\\OCBridgeServiceProvider"
             ],
             "aliases": {
-                "OcBridge": "Brunocfalcao\\OcBridge\\Facades\\OcBridge"
+                "OcBridge": "Brunocfalcao\\OCBridge\\Facades\\OcBridge"
             }
         }
     },

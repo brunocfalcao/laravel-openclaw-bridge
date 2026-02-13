@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Brunocfalcao\OcBridge;
+namespace Brunocfalcao\OCBridge;
 
-use Brunocfalcao\OcBridge\Services\BrowserService;
-use Brunocfalcao\OcBridge\Services\OpenClawGateway;
+use Brunocfalcao\OCBridge\Services\BrowserService;
+use Brunocfalcao\OCBridge\Services\OpenClawGateway;
 use Illuminate\Support\ServiceProvider;
 
-class OcBridgeServiceProvider extends ServiceProvider
+class OCBridgeServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
