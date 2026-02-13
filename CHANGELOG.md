@@ -2,6 +2,17 @@
 
 All notable changes to this package will be documented in this file.
 
+## 1.2.0 - 2026-02-13
+
+### Features
+
+- [NEW FEATURE] Browser automation methods: `type()`, `click()`, `waitForSelector()`, `getContent()`, `evaluateJavaScript()`, `waitForPageReady()`
+- [NEW FEATURE] `Browser` contract extended with full page interaction API
+
+### Improvements
+
+- [IMPROVED] README updated with Browser Automation section, method reference table, and contract-based examples
+
 ## 1.1.0 - 2026-02-13
 
 ### Improvements

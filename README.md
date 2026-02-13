@@ -8,7 +8,7 @@
 
 **Connect your Laravel app to AI agents with persistent memory, real-time streaming, and browser automation — all through a clean, expressive API.**
 
-Laravel OpenClaw Bridge is a first-party Laravel package that provides a seamless interface to the [OpenClaw](https://openclaw.ai) AI gateway. Send messages to AI agents that remember previous conversations, stream responses in real-time, and capture full-page browser screenshots — all with the elegance you expect from a Laravel package.
+Laravel OpenClaw Bridge is a first-party Laravel package that provides a seamless interface to the [OpenClaw](https://openclaw.ai) AI gateway. Send messages to AI agents that remember previous conversations, stream responses in real-time, and automate browser interactions — all with the elegance you expect from a Laravel package.
 
 ---
 
@@ -16,8 +16,8 @@ Laravel OpenClaw Bridge is a first-party Laravel package that provides a seamles
 
 - **Persistent Memory** — AI agents remember context across multiple calls. Build multi-step workflows where each step builds on the last.
 - **Real-Time Streaming** — Stream AI responses token-by-token with event callbacks. Perfect for live UIs and progress indicators.
-- **Browser Screenshots** — Capture full-page screenshots of any URL via Chrome DevTools Protocol. No Puppeteer, no Node.js — pure PHP.
-- **Clean Facade API** — Two methods. That's it. `sendMessage()` and `streamMessage()`. Everything else is configuration.
+- **Browser Automation** — Full browser control via Chrome DevTools Protocol. Navigate pages, type into forms, click elements, execute JavaScript, take screenshots — all pure PHP, no Puppeteer or Node.js.
+- **Clean Facade API** — `sendMessage()`, `streamMessage()`, and a full `Browser` contract. Everything else is configuration.
 - **Proper Architecture** — Interfaces for testability, DTOs for type safety, custom exceptions for precise error handling, and a `StreamEvent` enum instead of magic strings.
 - **Zero Lock-In** — Standard WebSocket protocol, environment-based config, and Laravel conventions throughout.
 
@@ -226,14 +226,14 @@ OcBridge::streamMessage(
 
 ---
 
-## Browser Screenshots
+## Browser Automation
 
-Capture full-page screenshots of any URL using Chrome DevTools Protocol — entirely in PHP, no Node.js dependencies.
+Full browser control via Chrome DevTools Protocol — entirely in PHP, no Node.js or Puppeteer dependencies. Navigate pages, interact with elements, execute JavaScript, and take screenshots.
 
 ```php
-use Brunocfalcao\OCBridge\Services\BrowserService;
+use Brunocfalcao\OCBridge\Contracts\Browser;
 
-$browser = app(BrowserService::class);
+$browser = app(Browser::class);
 
 $browser->open('https://example.com');
 $browser->screenshot('/path/to/screenshot.png');
@@ -243,7 +243,7 @@ $browser->close();
 ### Full API
 
 ```php
-$browser = app(BrowserService::class);
+$browser = app(Browser::class);
 
 // Check if Chrome is running
 if ($browser->testConnection()) {
@@ -268,6 +268,79 @@ if ($browser->testConnection()) {
 }
 ```
 
+### Page Interaction
+
+Type into form fields, click buttons, and wait for elements — enabling automated workflows on any web page.
+
+```php
+$browser->open('https://app.example.com/login');
+
+// Wait for the login form to render
+$browser->waitForSelector('#email');
+
+// Fill in credentials and submit
+$browser->type('#email', 'user@example.com');
+$browser->type('#password', 'secret');
+$browser->click('#login-button');
+
+// Wait for the dashboard to load
+$found = $browser->waitForSelector('.dashboard', timeoutSeconds: 10);
+
+if ($found) {
+    $browser->screenshot('/tmp/dashboard.png');
+}
+
+$browser->close();
+```
+
+### JavaScript Evaluation
+
+Execute arbitrary JavaScript in the page context — useful for reading page state, triggering client-side actions, or extracting data.
+
+```php
+$browser->open('https://example.com');
+
+// Read a value from the page
+$title = $browser->evaluateJavaScript('document.title');
+
+// Get the full HTML content of the page
+$html = $browser->getContent();
+
+// Trigger a client-side action
+$browser->evaluateJavaScript('window.scrollTo(0, document.body.scrollHeight)');
+
+// Async expressions are supported (awaitPromise is enabled)
+$data = $browser->evaluateJavaScript('fetch("/api/status").then(r => r.json())');
+
+$browser->close();
+```
+
+### Page Ready Detection
+
+The `waitForPageReady()` method waits for `document.readyState === 'complete'` and for Alpine.js to finish initializing (if present). It is called automatically after `open()` and `navigate()`, but you can call it manually after client-side navigation.
+
+```php
+$browser->click('#spa-link');
+$browser->waitForPageReady(timeoutSeconds: 15);
+$browser->screenshot('/tmp/after-navigation.png');
+```
+
+### Method Reference
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `open(string $url)` | `string` | Open a URL in a browser tab (reuses tabs on the same domain). Returns the tab ID. |
+| `navigate(string $url)` | `void` | Navigate the current tab to a different URL. |
+| `screenshot(?string $path, bool $fullPage)` | `string` | Capture a screenshot. Returns file path or base64 data. |
+| `type(string $selector, string $text)` | `void` | Type text into a form element (clears existing content first). |
+| `click(string $selector)` | `void` | Click an element by CSS selector. |
+| `waitForSelector(string $selector, int $timeoutSeconds)` | `bool` | Wait for an element to appear in the DOM. Returns false on timeout. |
+| `getContent()` | `string` | Get the full HTML content of the current page. |
+| `evaluateJavaScript(string $expression)` | `mixed` | Evaluate a JS expression in the page context (supports async). |
+| `waitForPageReady(int $timeoutSeconds)` | `void` | Wait for page load and Alpine.js initialization. |
+| `testConnection()` | `bool` | Check if headless Chrome is running and reachable. |
+| `close()` | `void` | Close the current browser tab and release resources. |
+
 ### Smart Tab Reuse
 
 The browser service intelligently manages tabs. If you open multiple URLs on the same domain, it reuses the existing tab instead of creating new ones — reducing memory and overhead.
@@ -280,7 +353,7 @@ $browser->open('https://other-site.com');           // Opens new tab (different 
 
 ### Prerequisites
 
-Browser screenshots require headless Chrome running with remote debugging enabled:
+Browser automation requires headless Chrome running with remote debugging enabled:
 
 ```bash
 google-chrome --headless --remote-debugging-port=9222 --no-sandbox
@@ -406,7 +479,7 @@ try {
 | PHP | 8.2+ |
 | Laravel | 12+ |
 | OpenClaw Gateway | Running on accessible endpoint |
-| Chrome/Chromium | With `--remote-debugging-port` (only for screenshots) |
+| Chrome/Chromium | With `--remote-debugging-port` (only for browser automation) |
 
 ---
 
