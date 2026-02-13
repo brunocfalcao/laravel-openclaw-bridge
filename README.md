@@ -396,6 +396,22 @@ OC_BROWSER_URL=http://127.0.0.1:9222   # Chrome DevTools Protocol endpoint
 
 ---
 
+## CLI Testing
+
+The package ships with an artisan command to quickly test your gateway connection from the terminal:
+
+```bash
+# Send a message to the default agent
+php artisan agent:message "Hello, are you there?"
+
+# Route to a specific agent
+php artisan agent:message "Analyze this dataset" --agent=research
+```
+
+The command streams the response in real-time to stdout — useful for verifying connectivity, debugging agent behavior, or testing new agents.
+
+---
+
 ## Protocol
 
 The bridge implements OpenClaw's WebSocket protocol v3. Every request follows this flow:

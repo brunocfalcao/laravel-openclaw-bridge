@@ -41,6 +41,10 @@ class OCBridgeServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
+            $this->commands([
+                Console\MessageCommand::class,
+            ]);
+
             $this->publishes([
                 __DIR__.'/../config/oc-bridge.php' => config_path('oc-bridge.php'),
             ], 'oc-bridge-config');

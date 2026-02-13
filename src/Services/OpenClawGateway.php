@@ -262,7 +262,7 @@ class OpenClawGateway implements Gateway
                 'role' => 'operator',
                 'auth' => ['token' => $this->token],
                 'client' => [
-                    'id' => 'laravel-openclaw-bridge',
+                    'id' => 'gateway-client',
                     'displayName' => $this->clientName,
                     'mode' => 'backend',
                     'version' => '1.0.0',

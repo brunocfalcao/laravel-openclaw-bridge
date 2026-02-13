@@ -2,6 +2,17 @@
 
 All notable changes to this package will be documented in this file.
 
+## 1.3.0 - 2026-02-13
+
+### Features
+
+- [NEW FEATURE] `agent:message` artisan command for CLI-based gateway testing
+- [NEW FEATURE] `--agent` option to route test messages to specific agents
+
+### Fixes
+
+- [BUG FIX] Gateway auth: `client.id` changed from `laravel-openclaw-bridge` to `gateway-client` to match gateway whitelist
+
 ## 1.2.0 - 2026-02-13
 
 ### Features
