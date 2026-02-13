@@ -144,6 +144,158 @@ class BrowserService implements Browser
     }
 
     /**
+     * Type text into a focused element identified by CSS selector.
+     *
+     * Focuses the element, selects all existing content (Ctrl+A), then
+     * inserts the new text via CDP Input.insertText to trigger DOM events.
+     *
+     * @throws BrowserException If no tab is open.
+     */
+    public function type(string $selector, string $text): void
+    {
+        $this->ensureTarget();
+
+        // Focus the element via JavaScript.
+        $this->sendCommand('Runtime.evaluate', [
+            'expression' => 'document.querySelector('.json_encode($selector).').focus()',
+        ]);
+        usleep(300000);
+
+        // Select all existing text (Ctrl+A) to clear the field.
+        $this->sendCommand('Input.dispatchKeyEvent', [
+            'type' => 'keyDown',
+            'key' => 'a',
+            'code' => 'KeyA',
+            'modifiers' => 2, // Ctrl
+        ]);
+        $this->sendCommand('Input.dispatchKeyEvent', [
+            'type' => 'keyUp',
+            'key' => 'a',
+            'code' => 'KeyA',
+            'modifiers' => 2,
+        ]);
+        usleep(100000);
+
+        // Insert text — properly triggers DOM input/change events.
+        $this->sendCommand('Input.insertText', ['text' => $text]);
+        usleep(200000);
+    }
+
+    /**
+     * Click an element identified by CSS selector.
+     *
+     * Calculates the element's center position and dispatches
+     * mousePressed + mouseReleased events via CDP.
+     *
+     * @throws BrowserException If no tab is open or the element is not found.
+     */
+    public function click(string $selector): void
+    {
+        $this->ensureTarget();
+
+        $element = $this->querySelector($selector);
+
+        if (! $element) {
+            throw new BrowserException("Element not found: {$selector}");
+        }
+
+        $centerX = $element['x'] + ($element['width'] / 2);
+        $centerY = $element['y'] + ($element['height'] / 2);
+
+        $this->sendCommand('Input.dispatchMouseEvent', [
+            'type' => 'mousePressed',
+            'x' => $centerX,
+            'y' => $centerY,
+            'button' => 'left',
+            'clickCount' => 1,
+        ]);
+        usleep(100000);
+
+        $this->sendCommand('Input.dispatchMouseEvent', [
+            'type' => 'mouseReleased',
+            'x' => $centerX,
+            'y' => $centerY,
+            'button' => 'left',
+            'clickCount' => 1,
+        ]);
+        sleep(1);
+    }
+
+    /**
+     * Wait for an element matching the CSS selector to appear in the DOM.
+     *
+     * Polls once per second until the element is found or the timeout expires.
+     *
+     * @param  int  $timeoutSeconds  Maximum seconds to wait.
+     * @return bool True if element appeared, false on timeout.
+     *
+     * @throws BrowserException If no tab is open.
+     */
+    public function waitForSelector(string $selector, int $timeoutSeconds = 30): bool
+    {
+        $this->ensureTarget();
+
+        $startTime = time();
+
+        while (time() - $startTime < $timeoutSeconds) {
+            if ($this->querySelector($selector)) {
+                return true;
+            }
+
+            sleep(1);
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the full HTML content of the current page.
+     *
+     * @throws BrowserException If no tab is open.
+     */
+    public function getContent(): string
+    {
+        $this->ensureTarget();
+
+        $result = $this->sendCommand('Runtime.evaluate', [
+            'expression' => 'document.documentElement.outerHTML',
+            'returnByValue' => true,
+        ]);
+
+        return $result['result']['value'] ?? '';
+    }
+
+    /**
+     * Evaluate a JavaScript expression in the page context.
+     *
+     * Supports async expressions (awaitPromise is enabled).
+     *
+     * @return mixed The return value of the expression.
+     *
+     * @throws BrowserException If the expression throws or no tab is open.
+     */
+    public function evaluateJavaScript(string $expression): mixed
+    {
+        $this->ensureTarget();
+
+        $result = $this->sendCommand('Runtime.evaluate', [
+            'expression' => $expression,
+            'returnByValue' => true,
+            'awaitPromise' => true,
+        ]);
+
+        if (isset($result['exceptionDetails'])) {
+            $message = $result['exceptionDetails']['exception']['description']
+                ?? $result['exceptionDetails']['text']
+                ?? 'JavaScript evaluation error';
+
+            throw new BrowserException("JS error: {$message}");
+        }
+
+        return $result['result']['value'] ?? null;
+    }
+
+    /**
      * Close the current browser tab and release resources.
      */
     public function close(): void
@@ -287,9 +439,36 @@ class BrowserService implements Browser
     }
 
     /**
-     * Wait for the page to reach readyState === 'complete'.
+     * Find an element by CSS selector and return its bounding rectangle.
+     *
+     * @return array{x: float, y: float, width: float, height: float}|null
      */
-    private function waitForPageReady(int $timeoutSeconds = 15): void
+    private function querySelector(string $selector): ?array
+    {
+        try {
+            $result = $this->sendCommand('Runtime.evaluate', [
+                'expression' => '(function() {
+                    const el = document.querySelector('.json_encode($selector).');
+                    if (!el) return null;
+                    const rect = el.getBoundingClientRect();
+                    return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+                })()',
+                'returnByValue' => true,
+            ]);
+
+            return $result['result']['value'] ?? null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Wait for the page to be fully loaded and JS frameworks initialized.
+     *
+     * Waits for document.readyState === 'complete' and for Alpine.js
+     * to finish initializing (if present) by checking for x-cloak removal.
+     */
+    public function waitForPageReady(int $timeoutSeconds = 15): void
     {
         sleep(1); // Brief pause for Chrome to start loading.
 
@@ -297,7 +476,10 @@ class BrowserService implements Browser
             'expression' => "new Promise((resolve) => {
                 const timeout = setTimeout(() => resolve('timeout'), ".($timeoutSeconds * 1000).");
                 const check = () => {
-                    if (document.readyState === 'complete') {
+                    const ready = document.readyState === 'complete';
+                    const alpineEl = document.querySelector('[x-data]');
+                    const alpineReady = !alpineEl || !alpineEl.hasAttribute('x-cloak');
+                    if (ready && alpineReady) {
                         clearTimeout(timeout);
                         resolve('ready');
                     } else {
