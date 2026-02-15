@@ -375,7 +375,7 @@ All configuration lives in `config/oc-bridge.php` and is driven by environment v
 # Gateway connection
 OC_GATEWAY_URL=ws://127.0.0.1:18789    # WebSocket endpoint
 OC_GATEWAY_TOKEN=your-token             # Authentication token
-OC_GATEWAY_TIMEOUT=600                  # Response timeout in seconds (default: 10 min)
+OC_GATEWAY_TIMEOUT=840                  # Response timeout in seconds (default: 14 min)
 
 # Session management
 OC_SESSION_PREFIX=my-app                # Namespace to isolate your app's sessions
@@ -389,7 +389,7 @@ OC_BROWSER_URL=http://127.0.0.1:9222   # Chrome DevTools Protocol endpoint
 |----------|---------|-------------|
 | `OC_GATEWAY_URL` | `ws://127.0.0.1:18789` | WebSocket endpoint for the OpenClaw gateway |
 | `OC_GATEWAY_TOKEN` | — | Your authentication token |
-| `OC_GATEWAY_TIMEOUT` | `600` | Max seconds to wait for a response |
+| `OC_GATEWAY_TIMEOUT` | `840` | Max seconds to wait for a response |
 | `OC_SESSION_PREFIX` | `market-studies` | Prefix for session keys (isolates your app) |
 | `OC_DEFAULT_AGENT` | `main` | Agent ID used when none is specified |
 | `OC_BROWSER_URL` | `http://127.0.0.1:9222` | Chrome DevTools Protocol endpoint |

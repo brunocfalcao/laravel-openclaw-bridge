@@ -54,7 +54,7 @@ class OpenClawGateway implements Gateway
     public function sendMessage(string $message, ?string $memoryId = null, ?string $agentId = null): GatewayResponse
     {
         $client = new Client($this->wsUrl, [
-            'timeout' => $this->timeoutSeconds,
+            'timeout' => 30, // Short per-receive timeout — we loop with our own deadline.
         ]);
 
         try {
@@ -352,7 +352,13 @@ class OpenClawGateway implements Gateway
         $deadline = time() + $this->timeoutSeconds;
 
         while (time() < $deadline) {
-            $raw = $client->receive();
+            try {
+                $raw = $client->receive();
+            } catch (\WebSocket\TimeoutException) {
+                // Short per-receive timeout expired — check deadline and retry.
+                continue;
+            }
+
             $frame = json_decode($raw, true);
 
             if (! $frame || ($frame['type'] ?? '') !== 'event') {

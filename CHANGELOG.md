@@ -2,6 +2,12 @@
 
 All notable changes to this package will be documented in this file.
 
+## 1.5.0 - 2026-02-15
+
+### Fixes
+
+- [BUG FIX] WebSocket `receive()` blocked PCNTL signals for entire timeout duration — now uses 30-second per-receive timeout with deadline loop and `TimeoutException` catch, allowing queue workers to process signals between reads
+
 ## 1.4.0 - 2026-02-15
 
 ### Features
