@@ -2,6 +2,21 @@
 
 All notable changes to this package will be documented in this file.
 
+## 1.6.0 - 2026-02-15
+
+### Features
+
+- [NEW FEATURE] `agent:install` now writes a documented `# LARAVEL OPENCLAW BRIDGE` section in `.env` with all 6 bridge keys (`OC_GATEWAY_URL`, `OC_GATEWAY_TOKEN`, `OC_GATEWAY_TIMEOUT`, `OC_DEFAULT_AGENT`, `OC_SESSION_PREFIX`, `OC_BROWSER_URL`), each preceded by a `# description` comment
+- [NEW FEATURE] Auto-detects `OC_DEFAULT_AGENT` from OpenClaw agent directories — picks the custom agent when exactly one exists alongside `main`
+- [NEW FEATURE] Auto-detects `OC_GATEWAY_URL` from the gateway port in `openclaw.json`
+- [NEW FEATURE] Agent discovery during install — scans `~/.openclaw/agents/` for configured agents
+
+### Improvements
+
+- [IMPROVED] `agent:install` cleans up legacy env var names (`OPENCLAW_AUTH_TOKEN`, `OPENCLAW_GATEWAY_URL`, `JARVIS_SESSION_PREFIX`, etc.) when writing the new section
+- [IMPROVED] Sensitive keys (`OC_GATEWAY_TOKEN`) are masked as `***` in install output
+- [IMPROVED] Existing `.env` values are preserved — install never overwrites a value that's already set
+
 ## 1.5.1 - 2026-02-15
 
 ### Improvements

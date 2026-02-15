@@ -17,6 +17,34 @@ class InstallCommand extends Command
 
     private array $autoConfigured = [];
 
+    /**
+     * All environment keys managed by the bridge, with descriptions.
+     *
+     * @var array<string, string>
+     */
+    private array $envKeys = [
+        'OC_GATEWAY_URL' => 'OpenClaw gateway WebSocket URL',
+        'OC_GATEWAY_TOKEN' => 'Gateway authentication token',
+        'OC_GATEWAY_TIMEOUT' => 'Maximum seconds to wait for a gateway response',
+        'OC_DEFAULT_AGENT' => 'Default OpenClaw agent to route messages to',
+        'OC_SESSION_PREFIX' => 'Session namespace prefix (isolates apps sharing a gateway)',
+        'OC_BROWSER_URL' => 'Headless Chrome DevTools Protocol endpoint for screenshots',
+    ];
+
+    /**
+     * Default values for env keys (when not auto-detected).
+     *
+     * @var array<string, string>
+     */
+    private array $envDefaults = [
+        'OC_GATEWAY_URL' => 'ws://127.0.0.1:18789',
+        'OC_GATEWAY_TOKEN' => '',
+        'OC_GATEWAY_TIMEOUT' => '600',
+        'OC_DEFAULT_AGENT' => 'main',
+        'OC_SESSION_PREFIX' => 'assistant',
+        'OC_BROWSER_URL' => 'http://127.0.0.1:9222',
+    ];
+
     public function handle(): int
     {
         $this->info('Installing OpenClaw Bridge...');
@@ -30,8 +58,8 @@ class InstallCommand extends Command
         // 1. Publish config
         $this->publishConfig();
 
-        // 2. Validate critical environment variables
-        $this->validateEnvironment();
+        // 2. Write the .env section with all keys
+        $this->writeEnvSection();
 
         // 3. Check optional services (Chrome, OpenClaw gateway)
         $this->checkServices();
@@ -102,77 +130,199 @@ class InstallCommand extends Command
         $this->line('  [ok] Published config/oc-bridge.php');
     }
 
-    protected function validateEnvironment(): void
+    /**
+     * Write a documented .env section with all bridge keys.
+     *
+     * Auto-detects values from the OpenClaw config file where possible.
+     * Keys that already have a value in .env are preserved.
+     */
+    protected function writeEnvSection(): void
     {
         $this->newLine();
         $this->line('  Checking environment...');
 
-        $required = [
-            'OC_GATEWAY_TOKEN' => 'OpenClaw gateway authentication token',
-        ];
+        $detected = $this->detectOpenClawConfig();
 
-        // Auto-detect missing values from OpenClaw config
-        $missing = array_filter(
-            array_keys($required),
-            fn ($key) => empty(env($key))
-        );
-
-        if (! empty($missing)) {
-            $detected = $this->detectOpenClawConfig();
-
-            if ($detected !== null) {
-                $this->line("  [>>] Found OpenClaw config ({$detected['source']})");
-
-                $keyMap = [
-                    'OC_GATEWAY_TOKEN' => $detected['token'],
-                ];
-
-                foreach ($missing as $key) {
-                    $value = $keyMap[$key] ?? null;
-
-                    if (empty($value)) {
-                        continue;
-                    }
-
-                    if ($this->writeEnvValue($key, $value)) {
-                        putenv("{$key}={$value}");
-                        $this->autoConfigured[] = $key;
-                        $this->line("  [ok] Auto-configured {$key} from OpenClaw config");
-                    } else {
-                        $this->warnings[] = "Could not write {$key} to .env — set it manually";
-                        $this->warn("  [!!] Could not write {$key} to .env");
-                    }
-                }
-
-                // Reload config so subsequent calls see the new values
-                $this->callSilently('config:clear');
-            }
+        if ($detected) {
+            $this->line("  [>>] Found OpenClaw config ({$detected['source']})");
         }
 
-        foreach ($required as $key => $description) {
-            // Skip validation for keys we just auto-configured
-            if (in_array($key, $this->autoConfigured, true)) {
+        // Build the values to write: auto-detect > existing > default.
+        $values = [];
+
+        foreach ($this->envKeys as $key => $description) {
+            $existing = $this->readEnvValue($key);
+
+            if ($existing !== null && $existing !== '') {
+                // Already has a value — keep it
+                $values[$key] = $existing;
+
                 continue;
             }
 
-            if (empty(env($key))) {
-                $this->warnings[] = "Set {$key} in .env ({$description})";
-                $this->warn("  [!!] {$key} is not set — {$description}");
+            // Try auto-detection
+            $autoValue = $this->autoDetectValue($key, $detected);
+
+            if ($autoValue !== null) {
+                $values[$key] = $autoValue;
+                $this->autoConfigured[] = $key;
+
+                continue;
+            }
+
+            // Use default
+            $values[$key] = $this->envDefaults[$key] ?? '';
+        }
+
+        // Write the section to .env
+        $this->writeEnvBlock($values);
+
+        // Reload environment so the rest of the install sees the new values
+        foreach ($values as $key => $value) {
+            putenv("{$key}={$value}");
+        }
+
+        $this->callSilently('config:clear');
+
+        // Report results
+        foreach ($this->envKeys as $key => $description) {
+            $value = $values[$key];
+            $source = in_array($key, $this->autoConfigured, true) ? ' (auto-detected)' : '';
+
+            if ($value === '') {
+                $this->line("  [--] {$key} not set — {$description}");
             } else {
-                $this->line("  [ok] {$key}");
+                $display = $this->isSensitive($key) ? '***' : $value;
+                $this->line("  [ok] {$key}: {$display}{$source}");
+            }
+        }
+    }
+
+    /**
+     * Auto-detect a value for the given key from the OpenClaw config.
+     */
+    private function autoDetectValue(string $key, ?array $detected): ?string
+    {
+        if (! $detected) {
+            return null;
+        }
+
+        return match ($key) {
+            'OC_GATEWAY_TOKEN' => $detected['token'] ?? null,
+            'OC_GATEWAY_URL' => $detected['url'] ?? null,
+            'OC_DEFAULT_AGENT' => $this->detectDefaultAgent($detected),
+            default => null,
+        };
+    }
+
+    /**
+     * Detect the best default agent from the OpenClaw config.
+     *
+     * Prefers a non-"main" agent if exactly one custom agent exists.
+     */
+    private function detectDefaultAgent(?array $detected): ?string
+    {
+        if (! $detected || empty($detected['agents'])) {
+            return null;
+        }
+
+        $agents = $detected['agents'];
+
+        // If there's only "main", nothing to auto-detect
+        if ($agents === ['main']) {
+            return null;
+        }
+
+        // Filter out "main" — if exactly one custom agent remains, use it
+        $custom = array_values(array_filter($agents, fn ($a) => $a !== 'main'));
+
+        if (count($custom) === 1) {
+            return $custom[0];
+        }
+
+        // Multiple custom agents — don't guess, let the user choose
+        return null;
+    }
+
+    /**
+     * Read a single env value from .env (raw file read, not env()).
+     */
+    private function readEnvValue(string $key): ?string
+    {
+        $envPath = base_path('.env');
+
+        if (! file_exists($envPath)) {
+            return null;
+        }
+
+        $content = file_get_contents($envPath);
+
+        if (preg_match("/^{$key}=[\"']?(.*?)[\"']?$/m", $content, $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Write (or replace) the bridge .env section with documented keys.
+     *
+     * @param  array<string, string>  $values
+     */
+    private function writeEnvBlock(array $values): void
+    {
+        $envPath = base_path('.env');
+        $content = file_get_contents($envPath);
+
+        // Remove any existing bridge section (between markers)
+        $sectionPattern = '/\n*# =+\n# LARAVEL OPENCLAW BRIDGE.*?(?=\n# =+\n[^#]|\n# =+\n*$|\z)/s';
+        $content = preg_replace($sectionPattern, '', $content);
+
+        // Also remove any standalone bridge keys that might exist outside the section
+        foreach (array_keys($this->envKeys) as $key) {
+            $content = preg_replace("/^#[^\n]*\n{$key}=.*\n?/m", '', $content);
+            $content = preg_replace("/^{$key}=.*\n?/m", '', $content);
+        }
+
+        // Also clean up legacy key names
+        $legacyKeys = [
+            'OPENCLAW_GATEWAY_URL', 'OPENCLAW_AUTH_TOKEN', 'OPENCLAW_TIMEOUT',
+            'OPENCLAW_WORKSPACE', 'JARVIS_SESSION_PREFIX', 'JARVIS_BROWSER_URL',
+        ];
+
+        foreach ($legacyKeys as $key) {
+            $content = preg_replace("/^#[^\n]*\n{$key}=.*\n?/m", '', $content);
+            $content = preg_replace("/^{$key}=.*\n?/m", '', $content);
+        }
+
+        // Build the new section
+        $section = "\n# ==============================================================================\n";
+        $section .= "# LARAVEL OPENCLAW BRIDGE\n";
+        $section .= "# ==============================================================================\n";
+
+        foreach ($this->envKeys as $key => $description) {
+            $value = $values[$key] ?? '';
+            $section .= "\n# {$description}\n";
+
+            // Quote values that contain spaces or special chars
+            if ($value !== '' && preg_match('/[\s"\\\\]/', $value)) {
+                $section .= "{$key}=\"{$value}\"\n";
+            } else {
+                $section .= "{$key}={$value}\n";
             }
         }
 
-        // Check gateway URL (has sensible default, so just inform)
-        $gatewayUrl = env('OC_GATEWAY_URL', 'ws://127.0.0.1:18789');
-        $this->line("  [ok] OC_GATEWAY_URL: {$gatewayUrl}");
+        $content = rtrim($content)."\n".$section;
 
-        // Check browser URL (optional)
-        if (empty(env('OC_BROWSER_URL'))) {
-            $this->line('  [--] OC_BROWSER_URL not set — using default port 9222');
-        } else {
-            $this->line('  [ok] OC_BROWSER_URL: '.env('OC_BROWSER_URL'));
-        }
+        file_put_contents($envPath, $content);
+    }
+
+    /**
+     * Check if a key contains sensitive data that shouldn't be displayed.
+     */
+    private function isSensitive(string $key): bool
+    {
+        return in_array($key, ['OC_GATEWAY_TOKEN'], true);
     }
 
     protected function checkServices(): void
@@ -435,6 +585,11 @@ UNIT;
         return $result !== '';
     }
 
+    /**
+     * Detect the OpenClaw config and extract gateway + agent info.
+     *
+     * @return array{token: string, url: string, source: string, agents: list<string>}|null
+     */
     private function detectOpenClawConfig(): ?array
     {
         $home = getenv('HOME') ?: (getenv('USERPROFILE') ?: '/root');
@@ -457,37 +612,38 @@ UNIT;
 
             $token = data_get($json, 'gateway.auth.token');
 
-            if ($token) {
-                return [
-                    'token' => $token,
-                    'source' => $path,
-                ];
+            if (! $token) {
+                continue;
             }
+
+            $port = data_get($json, 'gateway.port', 18789);
+            $url = "ws://127.0.0.1:{$port}";
+
+            // Discover configured agents
+            $agentsDir = dirname($path).'/agents';
+            $agents = [];
+
+            if (is_dir($agentsDir)) {
+                foreach (scandir($agentsDir) as $entry) {
+                    if ($entry === '.' || $entry === '..') {
+                        continue;
+                    }
+
+                    if (is_dir("{$agentsDir}/{$entry}")) {
+                        $agents[] = $entry;
+                    }
+                }
+            }
+
+            return [
+                'token' => $token,
+                'url' => $url,
+                'source' => $path,
+                'agents' => $agents,
+            ];
         }
 
         return null;
-    }
-
-    private function writeEnvValue(string $key, string $value): bool
-    {
-        $envPath = base_path('.env');
-
-        if (! file_exists($envPath)) {
-            return false;
-        }
-
-        $content = file_get_contents($envPath);
-        $escaped = addcslashes($value, '"\\');
-        $newLine = "{$key}=\"{$escaped}\"";
-
-        // Replace existing key (even if empty)
-        if (preg_match("/^{$key}=.*/m", $content)) {
-            $content = preg_replace("/^{$key}=.*/m", $newLine, $content);
-        } else {
-            $content = rtrim($content)."\n{$newLine}\n";
-        }
-
-        return file_put_contents($envPath, $content) !== false;
     }
 
     protected function smokeTest(): void
@@ -544,7 +700,7 @@ UNIT;
 
         $this->newLine();
         $this->line('  Next steps:');
-        $this->line('  1. Verify .env has OC_GATEWAY_TOKEN set');
+        $this->line('  1. Review .env — all bridge keys are in the LARAVEL OPENCLAW BRIDGE section');
         $this->line('  2. Test the connection: php artisan agent:message "Hello"');
         $this->newLine();
     }
