@@ -2,6 +2,13 @@
 
 All notable changes to this package will be documented in this file.
 
+## 1.4.0 - 2026-02-15
+
+### Features
+
+- [NEW FEATURE] `agent:install` artisan command — automated installation wizard with pre-flight checks, environment validation, auto-detection of OpenClaw config from `~/.openclaw/openclaw.json`, Chrome/Chromium installation and systemd service setup, gateway connectivity check, and smoke test
+- [NEW FEATURE] Auto-configures `OC_GATEWAY_TOKEN` in `.env` when detected from local OpenClaw config
+
 ## 1.3.0 - 2026-02-13
 
 ### Features

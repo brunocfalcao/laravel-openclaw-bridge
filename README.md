@@ -396,6 +396,27 @@ OC_BROWSER_URL=http://127.0.0.1:9222   # Chrome DevTools Protocol endpoint
 
 ---
 
+## Installation Wizard
+
+Run the interactive installer to set up everything automatically:
+
+```bash
+php artisan agent:install
+```
+
+The installer will:
+
+1. **Pre-flight checks** — PHP version, Laravel version, database connection
+2. **Publish config** — copies `config/oc-bridge.php` to your project
+3. **Validate environment** — checks for `OC_GATEWAY_TOKEN` and auto-detects it from `~/.openclaw/openclaw.json` if missing
+4. **Install Chrome** — offers to install Chromium and create a systemd service for headless mode
+5. **Connectivity check** — verifies the OpenClaw gateway is reachable
+6. **Smoke test** — sends a test message to the agent and confirms a response
+
+For non-interactive environments (CI/CD), use `--no-interaction` — the installer will skip prompts and report warnings instead.
+
+---
+
 ## CLI Testing
 
 The package ships with an artisan command to quickly test your gateway connection from the terminal:
