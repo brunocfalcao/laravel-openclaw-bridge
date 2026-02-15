@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 
 class MessageCommand extends Command
 {
-    protected $signature = 'agent:message
+    protected $signature = 'oc-bridge:message
         {message : The message to send to the agent}
         {--agent= : Agent ID to route to (defaults to config)}';
 

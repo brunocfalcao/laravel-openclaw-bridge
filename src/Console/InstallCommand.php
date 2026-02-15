@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 
 class InstallCommand extends Command
 {
-    protected $signature = 'agent:install';
+    protected $signature = 'oc-bridge:install';
 
     protected $description = 'Install and configure the OpenClaw Bridge';
 
@@ -661,12 +661,12 @@ UNIT;
         $this->line('  Running smoke test...');
 
         try {
-            $exitCode = $this->call('agent:message', ['message' => 'Hello']);
+            $exitCode = $this->call('oc-bridge:message', ['message' => 'Hello']);
 
             if ($exitCode === 0) {
                 $this->line('  [ok] Smoke test passed — agent responded');
             } else {
-                $this->warnings[] = 'Smoke test failed — agent:message returned a non-zero exit code';
+                $this->warnings[] = 'Smoke test failed — oc-bridge:message returned a non-zero exit code';
                 $this->warn('  [!!] Smoke test failed — check gateway configuration');
             }
         } catch (\Exception $e) {
@@ -701,7 +701,7 @@ UNIT;
         $this->newLine();
         $this->line('  Next steps:');
         $this->line('  1. Review .env — all bridge keys are in the LARAVEL OPENCLAW BRIDGE section');
-        $this->line('  2. Test the connection: php artisan agent:message "Hello"');
+        $this->line('  2. Test the connection: php artisan oc-bridge:message "Hello"');
         $this->newLine();
     }
 }

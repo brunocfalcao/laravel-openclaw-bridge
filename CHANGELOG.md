@@ -2,18 +2,25 @@
 
 All notable changes to this package will be documented in this file.
 
+## 1.7.0 - 2026-02-15
+
+### Improvements
+
+- [IMPROVED] Renamed artisan commands from `agent:install` → `oc-bridge:install` and `agent:message` → `oc-bridge:message` for clearer namespace ownership
+- [IMPROVED] Updated all internal references, CHANGELOG, and README to use new command names
+
 ## 1.6.0 - 2026-02-15
 
 ### Features
 
-- [NEW FEATURE] `agent:install` now writes a documented `# LARAVEL OPENCLAW BRIDGE` section in `.env` with all 6 bridge keys (`OC_GATEWAY_URL`, `OC_GATEWAY_TOKEN`, `OC_GATEWAY_TIMEOUT`, `OC_DEFAULT_AGENT`, `OC_SESSION_PREFIX`, `OC_BROWSER_URL`), each preceded by a `# description` comment
+- [NEW FEATURE] `oc-bridge:install` now writes a documented `# LARAVEL OPENCLAW BRIDGE` section in `.env` with all 6 bridge keys (`OC_GATEWAY_URL`, `OC_GATEWAY_TOKEN`, `OC_GATEWAY_TIMEOUT`, `OC_DEFAULT_AGENT`, `OC_SESSION_PREFIX`, `OC_BROWSER_URL`), each preceded by a `# description` comment
 - [NEW FEATURE] Auto-detects `OC_DEFAULT_AGENT` from OpenClaw agent directories — picks the custom agent when exactly one exists alongside `main`
 - [NEW FEATURE] Auto-detects `OC_GATEWAY_URL` from the gateway port in `openclaw.json`
 - [NEW FEATURE] Agent discovery during install — scans `~/.openclaw/agents/` for configured agents
 
 ### Improvements
 
-- [IMPROVED] `agent:install` cleans up legacy env var names (`OPENCLAW_AUTH_TOKEN`, `OPENCLAW_GATEWAY_URL`, `JARVIS_SESSION_PREFIX`, etc.) when writing the new section
+- [IMPROVED] `oc-bridge:install` cleans up legacy env var names (`OPENCLAW_AUTH_TOKEN`, `OPENCLAW_GATEWAY_URL`, `JARVIS_SESSION_PREFIX`, etc.) when writing the new section
 - [IMPROVED] Sensitive keys (`OC_GATEWAY_TOKEN`) are masked as `***` in install output
 - [IMPROVED] Existing `.env` values are preserved — install never overwrites a value that's already set
 
@@ -21,7 +28,7 @@ All notable changes to this package will be documented in this file.
 
 ### Improvements
 
-- [IMPROVED] `agent:install` now aborts with a clear error if OpenClaw is not installed on the system (no `~/.openclaw/` or `~/.openclaw-dev/` config found), preventing partial installs
+- [IMPROVED] `oc-bridge:install` now aborts with a clear error if OpenClaw is not installed on the system (no `~/.openclaw/` or `~/.openclaw-dev/` config found), preventing partial installs
 
 ## 1.5.0 - 2026-02-15
 
@@ -33,14 +40,14 @@ All notable changes to this package will be documented in this file.
 
 ### Features
 
-- [NEW FEATURE] `agent:install` artisan command — automated installation wizard with pre-flight checks, environment validation, auto-detection of OpenClaw config from `~/.openclaw/openclaw.json`, Chrome/Chromium installation and systemd service setup, gateway connectivity check, and smoke test
+- [NEW FEATURE] `oc-bridge:install` artisan command — automated installation wizard with pre-flight checks, environment validation, auto-detection of OpenClaw config from `~/.openclaw/openclaw.json`, Chrome/Chromium installation and systemd service setup, gateway connectivity check, and smoke test
 - [NEW FEATURE] Auto-configures `OC_GATEWAY_TOKEN` in `.env` when detected from local OpenClaw config
 
 ## 1.3.0 - 2026-02-13
 
 ### Features
 
-- [NEW FEATURE] `agent:message` artisan command for CLI-based gateway testing
+- [NEW FEATURE] `oc-bridge:message` artisan command for CLI-based gateway testing
 - [NEW FEATURE] `--agent` option to route test messages to specific agents
 
 ### Fixes

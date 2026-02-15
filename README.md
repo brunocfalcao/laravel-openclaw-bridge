@@ -401,7 +401,7 @@ OC_BROWSER_URL=http://127.0.0.1:9222   # Chrome DevTools Protocol endpoint
 Run the interactive installer to set up everything automatically:
 
 ```bash
-php artisan agent:install
+php artisan oc-bridge:install
 ```
 
 The installer will:
@@ -423,10 +423,10 @@ The package ships with an artisan command to quickly test your gateway connectio
 
 ```bash
 # Send a message to the default agent
-php artisan agent:message "Hello, are you there?"
+php artisan oc-bridge:message "Hello, are you there?"
 
 # Route to a specific agent
-php artisan agent:message "Analyze this dataset" --agent=research
+php artisan oc-bridge:message "Analyze this dataset" --agent=research
 ```
 
 The command streams the response in real-time to stdout — useful for verifying connectivity, debugging agent behavior, or testing new agents.
