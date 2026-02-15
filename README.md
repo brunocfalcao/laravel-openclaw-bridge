@@ -515,8 +515,16 @@ try {
 |------------|---------|
 | PHP | 8.2+ |
 | Laravel | 12+ |
-| OpenClaw Gateway | Running on accessible endpoint |
+| [OpenClaw](https://openclaw.ai) | Installed and running |
 | Chrome/Chromium | With `--remote-debugging-port` (only for browser automation) |
+
+### OpenClaw
+
+This package is a **client** for the [OpenClaw](https://openclaw.ai) AI gateway — it does not include the gateway itself. You need OpenClaw installed and running on a machine accessible from your Laravel application before using this package.
+
+To install OpenClaw, follow the instructions at [openclaw.ai](https://openclaw.ai). Once installed, the gateway runs on a WebSocket endpoint (default `ws://127.0.0.1:18789`) and manages your AI agents, sessions, and memory.
+
+The `oc-bridge:install` command will auto-detect your local OpenClaw installation and configure the connection for you.
 
 ---
 

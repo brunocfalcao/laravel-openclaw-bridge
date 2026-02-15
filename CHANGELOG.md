@@ -11,6 +11,7 @@ All notable changes to this package will be documented in this file.
 - [IMPROVED] Fixed `OcBridge` facade docblock — corrected `DTOs\GatewayResponse` namespace to `Data\GatewayResponse` and removed browser methods that don't work through the Gateway-bound facade
 - [IMPROVED] Fixed README timeout default from `840` to `600` to match actual `config/oc-bridge.php` default
 - [IMPROVED] Changed default session prefix from `market-studies` to `laravel` (config, service provider, README)
+- [IMPROVED] README: Added OpenClaw requirement subsection clarifying the gateway must be installed and running
 
 ### Dependencies
 
