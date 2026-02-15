@@ -80,6 +80,15 @@ class InstallCommand extends Command
             return false;
         }
 
+        // Check OpenClaw is installed
+        if (! $this->detectOpenClawConfig()) {
+            $this->error('  [!!] OpenClaw is not installed — no config found in ~/.openclaw/ or ~/.openclaw-dev/');
+            $this->line('       Install OpenClaw first, then re-run this command.');
+
+            return false;
+        }
+
+        $this->line('  [ok] OpenClaw detected');
         $this->line('  [ok] PHP '.PHP_VERSION);
         $this->line('  [ok] Laravel '.$laravelVersion);
 

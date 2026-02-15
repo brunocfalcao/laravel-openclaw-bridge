@@ -2,6 +2,12 @@
 
 All notable changes to this package will be documented in this file.
 
+## 1.5.1 - 2026-02-15
+
+### Improvements
+
+- [IMPROVED] `agent:install` now aborts with a clear error if OpenClaw is not installed on the system (no `~/.openclaw/` or `~/.openclaw-dev/` config found), preventing partial installs
+
 ## 1.5.0 - 2026-02-15
 
 ### Fixes
